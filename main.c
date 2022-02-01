@@ -13,7 +13,7 @@
 #define ADC_COEFFICIENT_MOTOR1 8 * PERIOD_FLOAT / ADC_MAX
 #define ADC_COEFFICIENT_MOTOR2 18 * PERIOD_FLOAT / ADC_MAX
 
-const unsigned int RPM = 150; // must be a value between 0 and 120!
+const unsigned int RPM = 120; // must be a value between 0 and 120!
 static float duty_cycle;
 static unsigned int MOTOR1_ONTIME; 
 static unsigned int MOTOR2_ONTIME;
