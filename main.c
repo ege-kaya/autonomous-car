@@ -33,10 +33,8 @@ volatile uint32_t rising_edge, pulse_width = 0;
 static unsigned int ic_pin = 0;
 static unsigned int external_stop = 0;
 
-void get_pulse_width(void)
-{
-	switch(ic_pin)
-	{
+void get_pulse_width(void) {
+	switch(ic_pin) {
 		case 0:
 			ic_pin = 1;
 			rising_edge = LPC_TIM3->CR0;
@@ -48,63 +46,54 @@ void get_pulse_width(void)
 	}
 }
 
-void stop(void) 
-{
-	LPC_GPIO1->PIN = 0;
+void stop(void) {
+    LPC_GPIO1->PIN = 0;
 	direction = 4;
 }
 
-void go_forward(void) 
-{
+void go_forward(void) {
 	LPC_GPIO1->PIN = (1 << 3 | 1 << 12 | 1 << 23 | 1 << 30);
 	LPC_TIM2->MR0 = 0;
 	direction = 0;
 }
 
-void reverse(void) 
-{
+void reverse(void) {
 	LPC_GPIO1->PIN = (1 << 6 | 1 << 7 | 1 << 20 | 1 << 24);
 	LPC_TIM2->MR0 = 0;
 	direction = 2;
 }
 
-void turn_right(void) 
-{
+void turn_right(void) {
 	LPC_GPIO1->PIN = (1 << 12 | 1 << 6 | 1 << 20 | 1 << 23);
 	LPC_TIM2->MR0 = LED_PERIOD;
 	direction = 1;
 }
 
-void turn_left(void) 
-{
+void turn_left(void) {
 	LPC_GPIO1->PIN = (1 << 3 | 1 << 7 | 1 << 24 | 1 << 30);
 	LPC_TIM2->MR0 = LED_PERIOD;
 	direction = 3;
 }
 
-void TIMER0_IRQHandler(void) 
-{
+void TIMER0_IRQHandler(void) {
 	// set interrupt flag 1 to indicate taking a GPIO reading
 	interrupt_flag = 1;
 	LPC_TIM0->IR |= 1;	
 }
 
-void TIMER1_IRQHandler(void) 
-{
+void TIMER1_IRQHandler(void) {
 	// set interrupt flag 2 to indicate taking a US reading
 	interrupt_flag = 2; 
 	LPC_TIM1->IR |= 1;
 }
 
-void TIMER3_IRQHandler(void) 
-{
+void TIMER3_IRQHandler(void) {
 	// set interrupt flag 3 to update pulsewidth value and take LDR reading in autonomous mode
 	get_pulse_width();
 	LPC_TIM3->IR |= 4;
 }
 
-void GPIO_Init(void) 
-{
+void GPIO_Init(void) {
 	// give power to GPIO
 	LPC_SC->PCONP |= (1 << 15);
 	// configure GPIO pins to GPIO functionality
@@ -142,8 +131,7 @@ void GPIO_Init(void)
 	LPC_GPIO5->DIR &= ~31;
 }
 
-void Timer_Init(void) 
-{
+void Timer_Init(void) {
 	// turn on timers 0, 1, 2, 3
 	LPC_SC->PCONP |= (1 << 1 | 1 << 2 | 1 << 22 | 1 << 23);
 
@@ -192,11 +180,9 @@ void Timer_Init(void)
 	
 	// remove reset and enable timers 0, 1, 2, 3
 	LPC_TIM0->TCR = LPC_TIM2->TCR = LPC_TIM1->TCR = LPC_TIM3->TCR = 1;
-	
 }
 
-void ADC_Init(void)
-{
+void ADC_Init(void) {
 	// calculate duty cycle and set motor on-times
 	duty_cycle = RPM / 171.;
 	MOTOR1_ONTIME = MOTOR1_POWER * duty_cycle;
@@ -226,8 +212,7 @@ void ADC_Init(void)
 	LPC_ADC->CR |= (1 << 21);
 }
 
-void PWM_Init(void)
-{
+void PWM_Init(void) {
 	int local_motor1_ontime = MOTOR1_ONTIME;
 	int local_motor2_ontime = MOTOR2_ONTIME;
 	
@@ -261,13 +246,10 @@ void PWM_Init(void)
 	
 	// remove reset, start timer and enable PWM
 	LPC_PWM0->TCR = 9;
-	
 }
 
-void change_orientation(int reading)
-{
-	switch(reading)
-	{
+void change_orientation(int reading) {
+	switch(reading) {
 		case 1: // JOYSTICK-LEFT
 			turn_left();
 			break;
@@ -291,10 +273,8 @@ void change_orientation(int reading)
 	}
 }
 
-void change_orientation_auto(int reading)
-{
-	switch(reading)
-	{
+void change_orientation_auto(int reading) {
+	switch(reading) {
 		case 4: // JOYSTICK-UP
 			go_forward();
 			external_stop = 0;
@@ -307,8 +287,7 @@ void change_orientation_auto(int reading)
 			// get current scenario and switch it
 			stop();
 			scenario = !scenario;
-			if (!scenario) // if switched to manual, set the motor speeds back up
-			{
+			if (!scenario) { // if switched to manual, set the motor speeds back up
 				LPC_PWM0->MR6 = MOTOR2_ONTIME;
 				LPC_PWM0->MR1 = MOTOR1_ONTIME;
 				LPC_PWM0->LER |= (1 << 1 | 1 << 6);
@@ -317,71 +296,59 @@ void change_orientation_auto(int reading)
 	}
 }
 
-void update(void) 
-{
+void update(void) {
 	int local_interrupt_flag = interrupt_flag;
 	int reading;
 	float us_reading;
-	switch(local_interrupt_flag)
-	{
+	switch(local_interrupt_flag) {
 		case 2: // must take a US reading
 			us_reading = pulse_width / 116;
-			if(!direction && us_reading < 12)
-			{
+			if(!direction && us_reading < 12) {
 				stop();
 			}
 			break;
 		case 1: // must take a GPIO reading!
 			reading = (LPC_GPIO5->PIN & 31) | (LPC_GPIO2->PIN & 1024);
-			if (reading != 0)
-			{	
+			if (reading != 0) {
 				change_orientation(reading);
 			}
-			if (pulse_width > 0x6500)
-			{
+			if (pulse_width > 0x6500) {
 				pulse_width = rising_edge = 0;
 			}
 			break;
 	}
 }
 
-void update_autonomous(void) 
-{
+void update_autonomous(void) {
 	int left_flag = 0;
 	int local_interrupt_flag = interrupt_flag;
 	int reading;
 	int ldr_left, ldr_right;
 	float us_reading;
-	switch(local_interrupt_flag)
-	{
+	switch(local_interrupt_flag) {
 		case 2: // must take a US reading
 			us_reading = pulse_width / 116;
-			while (us_reading < 13)
-			{
+			while (us_reading < 13) {
 				stop();
 				us_reading = pulse_width / 116;
 				left_flag = 1;
 			}
-			if (left_flag && !external_stop)
-			{
+			if (left_flag && !external_stop) {
 				left_flag = 0;
 				go_forward();
 			}
 			// update motor speeds
-			if (direction != 4)
-			{
+			if (direction != 4) {
 				ldr_left = ((LPC_ADC->DR[1] & VALMASK) >> 4);
 				ldr_right = ((LPC_ADC->DR[2] & VALMASK) >> 4);
-				if (ldr_left > ldr_right)
-				{
+				if (ldr_left > ldr_right) {
 					LPC_PWM0->MR6 = ADC_COEFFICIENT_MOTOR2 * ldr_left;
 					LPC_PWM0->MR1 = .8 * ADC_COEFFICIENT_MOTOR1 * ldr_right;
 					LPC_PWM0->LER |= (1 << 1 | 1 << 6);
 					LPC_GPIO1->PIN = (1 << 12 | 1 << 6 | 1 << 23);
 					LPC_TIM2->MR0 = LED_PERIOD;
 				}
-				else
-				{
+				else {
 					LPC_PWM0->MR6 = .8 * ADC_COEFFICIENT_MOTOR2 * ldr_left;
 					LPC_PWM0->MR1 = ADC_COEFFICIENT_MOTOR1 * ldr_right;
 					LPC_PWM0->LER |= (1 << 1 | 1 << 6);
@@ -392,30 +359,25 @@ void update_autonomous(void)
 			break;
 		case 1: // must take a GPIO reading!
 			reading = (LPC_GPIO5->PIN & 31) | (LPC_GPIO2->PIN & 1024);
-			if (reading != 0)
-			{	
+			if (reading != 0) {
 				change_orientation_auto(reading);
 			}
-			if (pulse_width > 0x6500)
-			{
+			if (pulse_width > 0x6500) {
 				pulse_width = rising_edge = 0;
 			}
 			break;
 	}
 }
 
-int main() 
-{
+int main(void) {
 	ADC_Init();
 	GPIO_Init();
 	Timer_Init();
 	PWM_Init();
 	__enable_irq();
-	while(1) 
-	{
+	while(1) {
 		int local_scenario = scenario;
-		switch(local_scenario) 
-		{
+		switch(local_scenario) {
 			case 0: // manual
 				update();
 				break;
